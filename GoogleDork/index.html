@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Dorks Database</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      padding: 20px;
+      margin: 0;
+    }
+    h1 {
+      text-align: center;
+      color: #111827;
+    }
+    #navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #111827;
+      padding: 10px;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    #navbar .search, #navbar .options {
+      display: flex;
+      align-items: center;
+    }
+    #navbar input[type="text"], #navbar select {
+      padding: 8px;
+      font-size: 16px;
+      margin: 0 5px;
+      border-radius: 5px;
+    }
+    #navbar input[type="text"] {
+      width: 200px;
+    }
+    #container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    #sidebar-left, #sidebar-right {
+      flex: 1;
+      min-width: 150px;
+      max-width: 200px;
+      background-color: #111827;
+      color: white;
+      height: 100vh;
+      padding: 10px;
+      position: sticky;
+      top: 50px;
+      overflow-y: auto;
+    }
+    #content {
+      flex: 3;
+      padding: 20px;
+    }
+    #dorksTable {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #111827;
+      color: white;
+    }
+    .pagination {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .pagination button {
+      padding: 10px 15px;
+      margin: 0 5px;
+      border: none;
+      background-color: #111827;
+      color: white;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    .pagination button:disabled {
+      background-color: #888;
+    }
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+      #container {
+        flex-direction: column;
+      }
+      #sidebar-left, #sidebar-right {
+        width: 100%;
+        height: auto;
+        position: static;
+        padding-bottom: 20px;
+      }
+      #navbar input[type="text"] {
+        width: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Navbar with search and options -->
+<div id="navbar">
+  <div class="search">
+    <input type="text" id="searchInput" placeholder="Search Dork...">
+  </div>
+  <div class="options">
+    <label for="dorkLimit">Show Dorks:</label>
+    <select id="dorkLimit">
+      <option value="50">50</option>
+      <option value="100">100</option>
+      <option value="200">200</option>
+      <option value="400">400</option>
+      <option value="500">500</option>
+      <option value="600">600</option>
+      <option value="800">800</option>
+      <option value="1000">1000</option>
+      <option value="3000">3000</option>
+      <option value="All">All Dorks</option>
+    </select>
+  </div>
+</div>
+
+<div id="container">
+  <!-- Left Sidebar -->
+  <div id="sidebar-left">
+    <h3>Left Sidebar</h3>
+    <ul>
+      <li><a href="#" style="color: white;">Link 1</a></li>
+      <li><a href="#" style="color: white;">Link 2</a></li>
+      <li><a href="#" style="color: white;">Link 3</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div id="content">
+    <h1>Google Dorks Database</h1>
+    <table id="dorksTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Date</th>
+          <th>Title</th>
+          <th>Category</th>
+          <th>Author</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Data will be populated here dynamically -->
+      </tbody>
+    </table>
+    <div class="pagination">
+      <button id="prevBtn" disabled>Back</button>
+      <button id="nextBtn">Next</button>
+    </div>
+  </div>
+
+  <!-- Right Sidebar -->
+  <div id="sidebar-right">
+    <h3>Right Sidebar</h3>
+    <ul>
+      <li><a href="#" style="color: white;">Link A</a></li>
+      <li><a href="#" style="color: white;">Link B</a></li>
+      <li><a href="#" style="color: white;">Link C</a></li>
+    </ul>
+  </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+  $(document).ready(function () {
+    let jsonData = []; // To hold JSON data
+    let currentPage = 0;
+    let itemsPerPage = 50; // Default items per page
+    let searchTimeout; // Timeout variable for debouncing search input
+
+    // Function to render data
+    function renderData(data) {
+      let rows = '';
+      let dataLimit = itemsPerPage === 'All' ? jsonData.length : parseInt(itemsPerPage);
+      let startIndex = currentPage * dataLimit;
+      let endIndex = Math.min(startIndex + dataLimit, data.length);
+      let dataSlice = data.slice(startIndex, endIndex);
+
+      $.each(dataSlice, function (index, item) {
+        rows += '<tr>';
+        rows += '<td>' + item.id + '</td>';
+        rows += '<td>' + item.date + '</td>';
+        rows += '<td>' + item.url_title.replace(/<[^>]*>?/gm, '') + '</td>';
+        rows += '<td>' + item.category.cat_title + '</td>';
+        rows += '<td>' + item.author.name + '</td>';
+        rows += '</tr>';
+      });
+
+      $('#dorksTable tbody').html(rows);
+      updateButtons(dataLimit, data.length);
+    }
+
+    // Update next and previous buttons
+    function updateButtons(dataLimit, totalData) {
+      $('#prevBtn').prop('disabled', currentPage === 0);
+      $('#nextBtn').prop('disabled', currentPage + 1 >= Math.ceil(totalData / dataLimit));
+    }
+
+    // Fetch JSON data
+    $.getJSON('google-hacking-database.json', function (data) {
+      jsonData = data.data;
+      renderData(jsonData); // Render initial data
+
+      // Change event for dropdown
+      $('#dorkLimit').change(function () {
+        itemsPerPage = $(this).val();
+        currentPage = 0; // Reset to first page
+        renderData(jsonData); // Re-render data
+      });
+
+      // Previous button functionality
+      $('#prevBtn').click(function () {
+        if (currentPage > 0) {
+          currentPage--;
+          renderData(jsonData);
+        }
+      });
+
+      // Next button functionality
+      $('#nextBtn').click(function () {
+        if (currentPage + 1 < Math.ceil(jsonData.length / itemsPerPage)) {
+          currentPage++;
+          renderData(jsonData);
+        }
+      });
+
+      // Search input with debounce
+      $('#searchInput').on('input', function () {
+        clearTimeout(searchTimeout); // Clear the timeout
+        const searchTerm = $(this).val().toLowerCase();
+
+        searchTimeout = setTimeout(() => {
+          let filteredData = jsonData.filter(item =>
+            item.url_title.toLowerCase().includes(searchTerm) ||
+            item.category.cat_title.toLowerCase().includes(searchTerm) ||
+            item.author.name.toLowerCase().includes(searchTerm)
+          );
+
+          currentPage = 0; // Reset to first page
+          renderData(filteredData); // Render filtered data
+        }, 300); // Adjust delay as needed
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
